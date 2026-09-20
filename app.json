@@ -41,7 +41,14 @@
           "speechRecognitionPermission": "Allow $(PRODUCT_NAME) to use speech recognition."
         }
       ],
-      "expo-build-properties"
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "networkInspector": false
+          }
+        }
+      ]
     ]
   }
 }

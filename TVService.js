@@ -1,15 +1,17 @@
 import { connectUrl, buildCommand, parseMessage } from './remoteProtocol';
+import WebSocketWithSelfSignedCert from 'react-native-websocket-self-signed';
 
 // ponytail: 8002/wss only (this TV rejects 8001 with ms.channel.unauthorized).
-// Needs a TLS bypass for the TV's self-signed cert — see native notes.
+// The TV cert is self-signed, so we use a WS client that skips TLS validation.
 const PORT = 8002;
 const CONNECT_TIMEOUT_MS = 10000;
 
-// Same public shape as the old WebRTCService: connect(ip, statusCb, messageCb),
-// sendCommand({ action, payload }), disconnect(). No WebRTC, no signaling server.
+// Public shape kept identical to before: connect(ip, statusCb, messageCb),
+// sendCommand({ action, payload }), disconnect().
 class TVService {
   constructor() {
     this.ws = null;
+    this.connected = false;
     this.token = '';
     this.onStatusChange = () => {};
     this.onMessage = () => {};
@@ -25,59 +27,70 @@ class TVService {
     // ponytail: token is memory-only; persist (expo-secure-store) if re-approving on every launch annoys.
     const url = connectUrl(ip, PORT, this.token);
     console.log('[TVService] connecting:', url);
-    this.ws = new WebSocket(url);
 
-    this.ws.onopen = () => console.log('[TVService] socket open');
+    const ws = WebSocketWithSelfSignedCert.getInstance(url);
+    this.ws = ws;
 
     this.connectTimer = setTimeout(() => {
-      if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+      if (!this.connected) {
         this.onStatusChange('ERROR');
         this.disconnect();
       }
     }, CONNECT_TIMEOUT_MS);
 
-    this.ws.onmessage = (event) => {
-      console.log('[TVService] message:', event.data);
-      const msg = parseMessage(event.data);
+    ws.onOpen(() => console.log('[TVService] socket open'));
+
+    ws.onMessage((data) => {
+      console.log('[TVService] message:', data);
+      const msg = parseMessage(data);
       if (!msg) return;
       if (msg.event === 'ms.channel.unauthorized' || msg.event === 'ms.service.unauthorized') {
         clearTimeout(this.connectTimer);
         this.onStatusChange('UNAUTHORIZED');
       } else if (msg.event === 'ms.channel.connect') {
         clearTimeout(this.connectTimer);
-        // ponytail: treated as CONNECTED even without a token; keys fail until the TV Allow dialog is accepted.
+        this.connected = true;
         if (msg.data && msg.data.token) this.token = msg.data.token;
         this.onStatusChange('CONNECTED');
       }
       this.onMessage(msg);
-    };
+    });
 
-    this.ws.onerror = (e) => {
-      console.log('[TVService] error event:', JSON.stringify(e));
+    ws.onError((err) => {
+      console.log('[TVService] error:', err);
       clearTimeout(this.connectTimer);
       this.onStatusChange('ERROR');
-    };
+    });
 
-    this.ws.onclose = (e) => {
-      console.log('[TVService] close:', e && e.code, e && e.reason);
+    ws.onClose(() => {
+      console.log('[TVService] close');
       clearTimeout(this.connectTimer);
+      this.connected = false;
       this.onStatusChange('DISCONNECTED');
-    };
+    });
+
+    ws.connect().catch((err) => {
+      console.log('[TVService] connect failed:', err);
+      clearTimeout(this.connectTimer);
+      this.onStatusChange('ERROR');
+    });
   }
 
   sendCommand(command) {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws || !this.connected) return;
     const payload = buildCommand(command && command.action, command && command.payload);
     if (payload) this.ws.send(JSON.stringify(payload));
   }
 
   disconnect() {
     clearTimeout(this.connectTimer);
+    this.connected = false;
     if (this.ws) {
-      this.ws.onmessage = null;
-      this.ws.onerror = null;
-      this.ws.onclose = null;
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch (e) {
+        // ignore
+      }
       this.ws = null;
     }
   }
