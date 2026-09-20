@@ -13,6 +13,7 @@
     #log li { padding: 4px 0; border-bottom: 1px solid #222; }
     #ime { margin: 0 40px 20px; font-size: 28px; padding: 10px; width: 60%;
            background: #222; color: #fff; border: 2px solid #bb86fc; border-radius: 8px; }
+    #imeText { margin: 0 40px 20px; font-size: 56px; font-weight: bold; color: #fff; min-height: 70px; }
   </style>
 </head>
 <body>
@@ -20,6 +21,7 @@
   <div id="last">Press a key on the phone</div>
   <div id="hint">Bu ekranda gorunen tus, telefonun TV'ye ulastigini dogrular. VOL/MUTE sistem tarafindan yutulabilir.</div>
   <input id="ime" placeholder="Metin buraya gelir (IME)" />
+  <div id="imeText"></div>
   <ul id="log"></ul>
 
   <script>
@@ -67,11 +69,17 @@
       e.preventDefault();
     });
 
-    // SendInputString (from the phone) targets the focused input, not keydown.
+    // SendInputString (from the phone) only reaches a focused text field, not keydown.
+    // The TV must report ImeSyncedSupport: true. Keep the field focused so IME text lands.
     var imeEl = document.getElementById('ime');
-    imeEl.focus();
+    var imeTextEl = document.getElementById('imeText');
+    function focusIme() { try { imeEl.focus(); } catch (e) {} }
+    focusIme();
+    window.addEventListener('focus', focusIme);
+    imeEl.addEventListener('blur', function () { setTimeout(focusIme, 200); });
     imeEl.addEventListener('input', function () {
       console.log('[tv-test] text:', imeEl.value);
+      imeTextEl.textContent = imeEl.value;
     });
   </script>
 </body>

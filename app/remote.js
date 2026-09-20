@@ -5,7 +5,8 @@ import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-spe
 import TVService from '../TVService';
 
 // Device locale, no extra dependency.
-const LOCALE = Intl.DateTimeFormat().resolvedOptions().locale || 'en-US';
+const LOCALE = (Intl.DateTimeFormat().resolvedOptions().locale || 'en-US').replace('_', '-');
+console.log('[speech] device locale:', LOCALE);
 
 export default function RemoteScreen() {
   const router = useRouter();
@@ -32,6 +33,10 @@ export default function RemoteScreen() {
   });
   useSpeechRecognitionEvent('error', (event) => {
     console.warn('[speech] error:', event.error, event.message);
+    if (event.error === 'language-not-supported' && LOCALE !== 'en-US') {
+      console.log('[speech] retrying with en-US');
+      ExpoSpeechRecognitionModule.start({ lang: 'en-US', interimResults: false, continuous: false });
+    }
   });
 
   const handleSpeak = async () => {
