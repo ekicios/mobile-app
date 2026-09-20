@@ -48,7 +48,8 @@ function toBase64(str) {
 
 function connectUrl(ip, port, token) {
   const name = encodeURIComponent(toBase64(APP_NAME));
-  return `ws://${ip}:${port}/api/v2/channels/samsung.remote.control?name=${name}${token ? `&token=${token}` : ''}`;
+  const scheme = port === 8002 ? 'wss' : 'ws';
+  return `${scheme}://${ip}:${port}/api/v2/channels/samsung.remote.control?name=${name}${token ? `&token=${token}` : ''}`;
 }
 
 // Returns null for unknown actions so callers can no-op instead of sending garbage.

@@ -1,7 +1,8 @@
 import { connectUrl, buildCommand, parseMessage } from './remoteProtocol';
 
-// ponytail: ws://8001 only. Add a wss://8002 fallback if a specific TV rejects 8001.
-const PORT = 8001;
+// ponytail: 8002/wss only (this TV rejects 8001 with ms.channel.unauthorized).
+// Needs a TLS bypass for the TV's self-signed cert — see native notes.
+const PORT = 8002;
 const CONNECT_TIMEOUT_MS = 10000;
 
 // Same public shape as the old WebRTCService: connect(ip, statusCb, messageCb),

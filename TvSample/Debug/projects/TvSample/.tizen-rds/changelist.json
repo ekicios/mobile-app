@@ -1,4 +1,15 @@
 {
   "projectDir": "/Users/oseyf/Project/mobile-app/TvSample",
-  "deploys": {}
+  "deploys": {
+    "next": [
+      {
+        "path": "Debug/projects/TvSample/config.xml",
+        "type": "modify"
+      },
+      {
+        "path": "Debug/projects/TvSample/index.html",
+        "type": "modify"
+      }
+    ]
+  }
 }

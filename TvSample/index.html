@@ -20,19 +20,21 @@
   <ul id="log"></ul>
 
   <script>
-    // Tizen TV apps must register the keys they want to receive.
+    // Tizen key names (not Samsung KEY_* codes). Arrow/Enter/Back arrive
+    // automatically; the rest must be registered. Needs the tv.inputdevice privilege.
     var KEYS = [
-      'KEY_UP', 'KEY_DOWN', 'KEY_LEFT', 'KEY_RIGHT', 'KEY_ENTER', 'KEY_RETURN',
-      'KEY_PLAY', 'KEY_PAUSE', 'KEY_STOP', 'KEY_HOME',
-      'KEY_VOLUP', 'KEY_VOLDOWN', 'KEY_MUTE',
-      'KEY_CHUP', 'KEY_CHDOWN', 'KEY_INFO'
+      'VolumeUp', 'VolumeDown', 'VolumeMute',
+      'ChannelUp', 'ChannelDown',
+      'MediaPlay', 'MediaPause', 'MediaPlayPause', 'MediaStop',
+      'Info'
     ];
 
     var NAMES = {
-      38: 'UP', 40: 'DOWN', 37: 'LEFT', 39: 'RIGHT',
-      13: 'ENTER', 10009: 'BACK', 415: 'PLAY', 19: 'PAUSE', 413: 'STOP',
-      10252: 'HOME', 447: 'VOL_UP', 448: 'VOL_DOWN', 449: 'MUTE',
-      427: 'CH_UP', 428: 'CH_DOWN', 457: 'INFO'
+      37: 'LEFT', 38: 'UP', 39: 'RIGHT', 40: 'DOWN', 13: 'ENTER', 10009: 'BACK',
+      447: 'VOL_UP', 448: 'VOL_DOWN', 449: 'MUTE',
+      427: 'CH_UP', 428: 'CH_DOWN',
+      415: 'PLAY', 19: 'PAUSE', 413: 'STOP', 10252: 'PLAY/PAUSE',
+      457: 'INFO'
     };
 
     // Guarded so the page also opens in a plain browser for a quick look.
