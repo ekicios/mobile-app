@@ -13,22 +13,31 @@ export default function RemoteScreen() {
   const [recognizing, setRecognizing] = useState(false);
 
   const send = (action, payload = null) => {
+    console.log('[remote] send', action, payload);
     TVService.sendCommand({ action, payload, timestamp: Date.now() });
   };
 
-  useSpeechRecognitionEvent('start', () => setRecognizing(true));
-  useSpeechRecognitionEvent('end', () => setRecognizing(false));
+  useSpeechRecognitionEvent('start', () => {
+    console.log('[speech] start');
+    setRecognizing(true);
+  });
+  useSpeechRecognitionEvent('end', () => {
+    console.log('[speech] end');
+    setRecognizing(false);
+  });
   useSpeechRecognitionEvent('result', (event) => {
-    if (!event.isFinal) return;
+    console.log('[speech] result', JSON.stringify(event));
     const text = event.results?.[0]?.transcript;
     if (text) send('TEXT', text);
   });
   useSpeechRecognitionEvent('error', (event) => {
-    console.warn('speech error:', event.error, event.message);
+    console.warn('[speech] error:', event.error, event.message);
   });
 
   const handleSpeak = async () => {
+    console.log('[speech] requesting permissions');
     const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    console.log('[speech] granted:', granted);
     if (!granted) return;
     ExpoSpeechRecognitionModule.start({ lang: LOCALE, interimResults: false, continuous: false });
   };
