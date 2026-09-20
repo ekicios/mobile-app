@@ -4,11 +4,11 @@
     "next": [
       {
         "path": "Debug/projects/TvSample/config.xml",
-        "type": "modify"
+        "type": "add"
       },
       {
         "path": "Debug/projects/TvSample/index.html",
-        "type": "modify"
+        "type": "add"
       },
       {
         "path": "Debug/projects/TvSample/.vscode/tasks.json",
@@ -16,7 +16,7 @@
       },
       {
         "path": "Debug/projects/TvSample/protocol.test.js",
-        "type": "modify"
+        "type": "add"
       }
     ]
   }

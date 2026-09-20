@@ -23,7 +23,11 @@ class TVService {
     this.onStatusChange('CONNECTING');
 
     // ponytail: token is memory-only; persist (expo-secure-store) if re-approving on every launch annoys.
-    this.ws = new WebSocket(connectUrl(ip, PORT, this.token));
+    const url = connectUrl(ip, PORT, this.token);
+    console.log('[TVService] connecting:', url);
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen = () => console.log('[TVService] socket open');
 
     this.connectTimer = setTimeout(() => {
       if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
@@ -33,6 +37,7 @@ class TVService {
     }, CONNECT_TIMEOUT_MS);
 
     this.ws.onmessage = (event) => {
+      console.log('[TVService] message:', event.data);
       const msg = parseMessage(event.data);
       if (!msg) return;
       if (msg.event === 'ms.channel.unauthorized' || msg.event === 'ms.service.unauthorized') {
@@ -47,12 +52,14 @@ class TVService {
       this.onMessage(msg);
     };
 
-    this.ws.onerror = () => {
+    this.ws.onerror = (e) => {
+      console.log('[TVService] error:', e && e.message);
       clearTimeout(this.connectTimer);
       this.onStatusChange('ERROR');
     };
 
-    this.ws.onclose = () => {
+    this.ws.onclose = (e) => {
+      console.log('[TVService] close:', e && e.code, e && e.reason);
       clearTimeout(this.connectTimer);
       this.onStatusChange('DISCONNECTED');
     };
