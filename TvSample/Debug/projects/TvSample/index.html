@@ -3,84 +3,58 @@
 <head>
   <meta charset="utf-8">
   <title>RN Remote Test</title>
+  <script src="./vendor/msf-2.0.14.min.js"></script>
   <style>
     html, body { margin: 0; height: 100%; background: #121212; color: #eee;
                  font-family: sans-serif; overflow: hidden; }
     h1 { color: #bb86fc; font-size: 40px; margin: 30px 40px 0; }
-    #last { font-size: 96px; font-weight: bold; color: #03dac6; margin: 20px 40px; }
-    #hint { color: #888; margin: 0 40px 20px; font-size: 20px; }
+    #last { font-size: 72px; font-weight: bold; color: #03dac6; margin: 20px 40px; min-height: 90px; }
     #log { list-style: none; margin: 0 40px; padding: 0; font-size: 24px; color: #aaa; }
     #log li { padding: 4px 0; border-bottom: 1px solid #222; }
-    #ime { margin: 0 40px 20px; font-size: 28px; padding: 10px; width: 60%;
-           background: #222; color: #fff; border: 2px solid #bb86fc; border-radius: 8px; }
-    #imeText { margin: 0 40px 20px; font-size: 56px; font-weight: bold; color: #fff; min-height: 70px; }
   </style>
 </head>
 <body>
-  <h1>RN Remote Test</h1>
-  <div id="last">Press a key on the phone</div>
-  <div id="hint">Bu ekranda gorunen tus, telefonun TV'ye ulastigini dogrular. VOL/MUTE sistem tarafindan yutulabilir.</div>
-  <input id="ime" placeholder="Metin buraya gelir (IME)" />
-  <div id="imeText"></div>
+  <h1>RN Remote Test (MSF)</h1>
+  <div id="last">Kanal bekleniyor...</div>
   <ul id="log"></ul>
 
   <script>
-    // Tizen key names (not Samsung KEY_* codes). Arrow/Enter/Back arrive
-    // automatically; the rest must be registered. Needs the tv.inputdevice privilege.
-    var KEYS = [
-      'VolumeUp', 'VolumeDown', 'VolumeMute',
-      'ChannelUp', 'ChannelDown',
-      'MediaPlay', 'MediaPause', 'MediaPlayPause', 'MediaStop',
-      'Info'
-    ];
-
-    var NAMES = {
-      37: 'LEFT', 38: 'UP', 39: 'RIGHT', 40: 'DOWN', 13: 'ENTER', 10009: 'BACK',
-      447: 'VOL_UP', 448: 'VOL_DOWN', 449: 'MUTE',
-      427: 'CH_UP', 428: 'CH_DOWN',
-      415: 'PLAY', 19: 'PAUSE', 413: 'STOP', 10252: 'PLAY/PAUSE',
-      457: 'INFO'
-    };
-
-    // Guarded so the page also opens in a plain browser for a quick look.
-    try {
-      if (typeof tizen !== 'undefined' && tizen.tvinputdevice) {
-        if (tizen.tvinputdevice.registerKeyBatch) {
-          tizen.tvinputdevice.registerKeyBatch(KEYS);
-        } else {
-          KEYS.forEach(function (k) { tizen.tvinputdevice.registerKey(k); });
-        }
-      }
-    } catch (e) {
-      console.log('key registration failed', e);
-    }
+    // ponytail: channel name hardcoded; must match remoteProtocol.js CHANNEL.
+    var CHANNEL_NAME = 'com.samsung.multiscreen.rnremote';
 
     var lastEl = document.getElementById('last');
     var logEl = document.getElementById('log');
 
-    document.addEventListener('keydown', function (e) {
-      var name = NAMES[e.keyCode] || ('keyCode ' + e.keyCode);
-      console.log('[tv-test] key', name, e.keyCode);
-      lastEl.textContent = name;
+    function show(label) {
+      lastEl.textContent = label;
       var li = document.createElement('li');
-      li.textContent = name + '  (' + e.keyCode + ')';
+      li.textContent = label;
       logEl.insertBefore(li, logEl.firstChild);
-      if (logEl.children.length > 12) logEl.removeChild(logEl.lastChild);
-      e.preventDefault();
-    });
+      if (logEl.children.length > 20) logEl.removeChild(logEl.lastChild);
+    }
 
-    // SendInputString (from the phone) only reaches a focused text field, not keydown.
-    // The TV must report ImeSyncedSupport: true. Keep the field focused so IME text lands.
-    var imeEl = document.getElementById('ime');
-    var imeTextEl = document.getElementById('imeText');
-    function focusIme() { try { imeEl.focus(); } catch (e) {} }
-    focusIme();
-    window.addEventListener('focus', focusIme);
-    imeEl.addEventListener('blur', function () { setTimeout(focusIme, 200); });
-    imeEl.addEventListener('input', function () {
-      console.log('[tv-test] text:', imeEl.value);
-      imeTextEl.textContent = imeEl.value;
-    });
+    if (!window.msf) {
+      show('window.msf yok - msf-2.0.14.min.js ekli mi?');
+    } else {
+      window.msf.local(function (err, service) {
+        if (err) { show('MSF hata: ' + JSON.stringify(err)); return; }
+        var channel = service.channel(CHANNEL_NAME);
+        channel.on('say', function (message) {
+          console.log('[tv-test] say:', message);
+          var m = null;
+          try { m = JSON.parse(message); } catch (e) {}
+          if (m && m.type === 'key') show('TUS: ' + m.value);
+          else if (m && m.type === 'text') show('METIN: ' + m.value);
+          else show(String(message));
+        });
+        channel.on('connect', function () { show('Kanal baglandi'); });
+        channel.connect({ name: 'TvSample' }, function () {
+          console.log('[tv-test] channel connected');
+        }, function (e) {
+          console.log('[tv-test] connect err', e);
+        });
+      });
+    }
   </script>
 </body>
 </html>

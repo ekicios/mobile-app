@@ -4,21 +4,21 @@
   "hashAlgorithm": "xxh3-128",
   "input": {
     "index.html": {
-      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
+      "hash": "fa645a2085be0baba58e0956ed8269ef"
     },
     "protocol.test.js": {
-      "hash": "00a7ed79d19dbd0e2aeaf1d163539496"
+      "hash": "56263d47c7f370d6f6d1165c1d0e15ee"
     },
     "server.js": {
       "hash": "fa3ca23f1cff0e9c3e06e47d89948399"
     },
     "config.xml": {
-      "hash": "432c7f0728ecd3109402dd30aeca6a3b"
+      "hash": "e927d24b011a8c8acc92a069f3d1bcf6"
     }
   },
   "output": {
     "Debug/projects/TvSample/config.xml": {
-      "hash": "432c7f0728ecd3109402dd30aeca6a3b"
+      "hash": "e927d24b011a8c8acc92a069f3d1bcf6"
     },
     "Debug/projects/TvSample/css/style.css": {
       "hash": "0501cdb5a64315918af26768b9cdf9cd"
@@ -27,13 +27,13 @@
       "hash": "1a426fbb8d27a3d3d797ae8415546bde"
     },
     "Debug/projects/TvSample/index.html": {
-      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
+      "hash": "fa645a2085be0baba58e0956ed8269ef"
     },
     "Debug/projects/TvSample/main.js": {
       "hash": "99aa06d3014798d86001c324468d497f"
     },
     "Debug/projects/TvSample/protocol.test.js": {
-      "hash": "00a7ed79d19dbd0e2aeaf1d163539496"
+      "hash": "56263d47c7f370d6f6d1165c1d0e15ee"
     },
     "Debug/projects/TvSample/server.js": {
       "hash": "fa3ca23f1cff0e9c3e06e47d89948399"

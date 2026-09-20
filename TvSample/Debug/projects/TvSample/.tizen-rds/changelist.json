@@ -17,6 +17,10 @@
       {
         "path": "Debug/projects/TvSample/protocol.test.js",
         "type": "add"
+      },
+      {
+        "path": "Debug/projects/TvSample/protocol.test.js.git",
+        "type": "modify"
       }
     ]
   }
