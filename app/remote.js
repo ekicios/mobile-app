@@ -1,14 +1,36 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import TVService from '../TVService';
+
+// Device locale, no extra dependency.
+const LOCALE = Intl.DateTimeFormat().resolvedOptions().locale || 'en-US';
 
 export default function RemoteScreen() {
   const router = useRouter();
   const [customText, setCustomText] = useState('');
+  const [recognizing, setRecognizing] = useState(false);
 
   const send = (action, payload = null) => {
     TVService.sendCommand({ action, payload, timestamp: Date.now() });
+  };
+
+  useSpeechRecognitionEvent('start', () => setRecognizing(true));
+  useSpeechRecognitionEvent('end', () => setRecognizing(false));
+  useSpeechRecognitionEvent('result', (event) => {
+    if (!event.isFinal) return;
+    const text = event.results?.[0]?.transcript;
+    if (text) send('TEXT', text);
+  });
+  useSpeechRecognitionEvent('error', (event) => {
+    console.warn('speech error:', event.error, event.message);
+  });
+
+  const handleSpeak = async () => {
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) return;
+    ExpoSpeechRecognitionModule.start({ lang: LOCALE, interimResults: false, continuous: false });
   };
 
   const handleDisconnect = () => {
@@ -72,6 +94,13 @@ export default function RemoteScreen() {
           <Text style={styles.sendText}>Send</Text>
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        style={[styles.speakBtn, recognizing && styles.speakBtnActive]}
+        onPress={recognizing ? () => ExpoSpeechRecognitionModule.stop() : handleSpeak}
+      >
+        <Text style={styles.speakText}>{recognizing ? 'Listening…' : 'Speak'}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -180,5 +209,20 @@ const styles = StyleSheet.create({
   sendText: {
     color: '#121212',
     fontWeight: 'bold',
+  },
+  speakBtn: {
+    marginTop: 20,
+    backgroundColor: '#bb86fc',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+  },
+  speakBtnActive: {
+    backgroundColor: '#e74c3c',
+  },
+  speakText: {
+    color: '#121212',
+    fontWeight: 'bold',
+    fontSize: 16,
   }
 });
