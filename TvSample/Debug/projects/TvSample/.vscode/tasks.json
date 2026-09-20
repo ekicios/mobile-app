@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "tvIp",
+      "type": "promptString",
+      "description": "TV IP (sdb device address)",
+      "default": "192.168.1.50"
+    },
+    {
+      "id": "debugPort",
+      "type": "promptString",
+      "description": "Local TCP port to forward for Web Inspector",
+      "default": "9222"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Tizen: Connect TV",
+      "type": "shell",
+      "command": "SDB=$(command -v sdb || echo \"$HOME/tizen-studio/tools/sdb\"); \"$SDB\" connect ${input:tvIp}",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tizen: Install",
+      "type": "shell",
+      "command": "SDB=$(command -v sdb || echo \"$HOME/tizen-studio/tools/sdb\"); WGT=$(ls Debug/TvSample.wgt TvSample/Debug/TvSample.wgt 2>/dev/null | head -1); echo \"Installing $WGT\"; \"$SDB\" -s ${input:tvIp} push \"$WGT\" /home/owner/share/tmp/sdk_tools/tmp/ && \"$SDB\" -s ${input:tvIp} shell 0 vd_appinstall 5fohnTCUqe.TvSample /home/owner/share/tmp/sdk_tools/tmp/TvSample.wgt",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tizen: Run",
+      "type": "shell",
+      "command": "SDB=$(command -v sdb || echo \"$HOME/tizen-studio/tools/sdb\"); \"$SDB\" -s ${input:tvIp} shell 0 execute 5fohnTCUqe.TvSample",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tizen: Install & Run",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Tizen: Install",
+        "Tizen: Run"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "Tizen: Debug (Web Inspector)",
+      "type": "shell",
+      "command": "SDB=$(command -v sdb || echo \"$HOME/tizen-studio/tools/sdb\"); OUT=$(\"$SDB\" -s ${input:tvIp} shell 0 debug 5fohnTCUqe.TvSample); echo \"$OUT\"; PORT=$(echo \"$OUT\" | grep -o 'port: *[0-9]*' | grep -o '[0-9]*' | tail -1); echo \"Web Inspector port: $PORT\"; \"$SDB\" -s ${input:tvIp} forward tcp:${input:debugPort} tcp:$PORT && open -a \"Google Chrome\" \"http://127.0.0.1:${input:debugPort}\"",
+      "problemMatcher": []
+    }
+  ]
+}

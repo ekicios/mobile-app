@@ -13,6 +13,7 @@ assert.strictEqual(buildCommand('NOPE'), null);
 assert.strictEqual(buildCommand('TEXT', 'hi').params.TypeOfRemote, 'SendInputString');
 
 assert.ok(connectUrl('10.0.0.5', 8001, '').startsWith('ws://10.0.0.5:8001/api/v2/channels/samsung.remote.control?name='));
+assert.ok(connectUrl('10.0.0.5', 8002, '').startsWith('wss://10.0.0.5:8002/api/v2/channels/samsung.remote.control?name='));
 assert.ok(connectUrl('10.0.0.5', 8001, 'tok').endsWith('&token=tok'));
 
 assert.strictEqual(parseMessage('{bad'), null);

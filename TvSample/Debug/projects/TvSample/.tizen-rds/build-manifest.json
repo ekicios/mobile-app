@@ -7,7 +7,7 @@
       "hash": "050b97a861627d56c38683f30c9aeaee"
     },
     "protocol.test.js": {
-      "hash": "86de6abbe10b71aaf0a2a677035614b0"
+      "hash": "0d9b176f6576625d7100951d67d8c4f4"
     },
     "server.js": {
       "hash": "fa3ca23f1cff0e9c3e06e47d89948399"
@@ -33,10 +33,13 @@
       "hash": "99aa06d3014798d86001c324468d497f"
     },
     "Debug/projects/TvSample/protocol.test.js": {
-      "hash": "86de6abbe10b71aaf0a2a677035614b0"
+      "hash": "0d9b176f6576625d7100951d67d8c4f4"
     },
     "Debug/projects/TvSample/server.js": {
       "hash": "fa3ca23f1cff0e9c3e06e47d89948399"
+    },
+    "Debug/projects/TvSample/.vscode/tasks.json": {
+      "hash": "0560d2cda1b78ee343bdf590069963ab"
     }
   }
 }

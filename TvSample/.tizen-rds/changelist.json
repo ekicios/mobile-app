@@ -9,6 +9,14 @@
       {
         "path": "Debug/projects/TvSample/index.html",
         "type": "modify"
+      },
+      {
+        "path": "Debug/projects/TvSample/.vscode/tasks.json",
+        "type": "add"
+      },
+      {
+        "path": "Debug/projects/TvSample/protocol.test.js",
+        "type": "modify"
       }
     ]
   }
