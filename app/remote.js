@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import TVService from '../TVService';
 
-// Device locale, no extra dependency.
-const LOCALE = (Intl.DateTimeFormat().resolvedOptions().locale || 'en-US').replace('_', '-');
-console.log('[speech] device locale:', LOCALE);
+// Default to Turkish; falls back to en-US on language-not-supported.
+const LOCALE = 'tr-TR';
+console.log('[speech] locale:', LOCALE);
 
 export default function RemoteScreen() {
   const router = useRouter();
   const [customText, setCustomText] = useState('');
   const [recognizing, setRecognizing] = useState(false);
+
+  useEffect(() => {
+    const fn = ExpoSpeechRecognitionModule.getSupportedLocales;
+    if (!fn) return;
+    fn.call(ExpoSpeechRecognitionModule)
+      .then((res) => {
+        const list = Array.isArray(res) ? res : (res && res.locales) || [];
+        console.log('[speech] supported:', list);
+      })
+      .catch((e) => console.log('[speech] getSupportedLocales failed:', e && e.message));
+  }, []);
 
   const send = (action, payload = null) => {
     console.log('[remote] send', action, payload);

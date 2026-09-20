@@ -52,24 +52,30 @@ function connectUrl(ip, port, token) {
   return `${scheme}://${ip}:${port}/api/v2/channels/samsung.remote.control?name=${name}${token ? `&token=${token}` : ''}`;
 }
 
-// Returns null for unknown actions so callers can no-op instead of sending garbage.
-function buildCommand(action, payload) {
+// Returns the list of messages to send (empty for unknown actions).
+// Some TVs require the custom.remote.textReceived broadcast before accepting IME text.
+function buildCommands(action, payload) {
   if (action === 'TEXT') {
-    return {
-      method: 'ms.remote.control',
-      params: {
-        Cmd: toBase64(payload == null ? '' : String(payload)),
-        DataOfCmd: 'base64',
-        TypeOfRemote: 'SendInputString',
+    return [
+      { method: 'ms.channel.emit', params: { event: 'custom.remote.textReceived', to: 'broadcast' } },
+      {
+        method: 'ms.remote.control',
+        params: {
+          Cmd: toBase64(payload == null ? '' : String(payload)),
+          DataOfCmd: 'base64',
+          TypeOfRemote: 'SendInputString',
+        },
       },
-    };
+    ];
   }
   const key = KEY_BY_ACTION[action];
-  if (!key) return null;
-  return {
-    method: 'ms.remote.control',
-    params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' },
-  };
+  if (!key) return [];
+  return [
+    {
+      method: 'ms.remote.control',
+      params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' },
+    },
+  ];
 }
 
 function parseMessage(raw) {
@@ -80,4 +86,4 @@ function parseMessage(raw) {
   }
 }
 
-module.exports = { APP_NAME, KEY_BY_ACTION, toBase64, connectUrl, buildCommand, parseMessage };
+module.exports = { APP_NAME, KEY_BY_ACTION, toBase64, connectUrl, buildCommands, parseMessage };

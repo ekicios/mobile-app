@@ -1,7 +1,7 @@
 {
   "deployId": 1,
   "projectDir": "/Users/oseyf/Project/mobile-app/TvSample",
-  "timestamp": "2026-09-20T16:21:25.331Z",
+  "timestamp": "2026-09-20T16:26:02.492Z",
   "hashAlgorithm": "xxh3-128",
   "input": {
     "server.js": {
@@ -14,7 +14,7 @@
       "hash": "99aa06d3014798d86001c324468d497f"
     },
     "index.html": {
-      "hash": "bdd805c76293958cdd00e7ec342de195"
+      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
     },
     "icon.png": {
       "hash": "1a426fbb8d27a3d3d797ae8415546bde"
@@ -37,7 +37,7 @@
       "hash": "99aa06d3014798d86001c324468d497f"
     },
     "Debug/projects/TvSample/index.html": {
-      "hash": "bdd805c76293958cdd00e7ec342de195"
+      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
     },
     "Debug/projects/TvSample/icon.png": {
       "hash": "1a426fbb8d27a3d3d797ae8415546bde"

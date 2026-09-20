@@ -4,7 +4,7 @@
   "hashAlgorithm": "xxh3-128",
   "input": {
     "index.html": {
-      "hash": "bdd805c76293958cdd00e7ec342de195"
+      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
     },
     "protocol.test.js": {
       "hash": "0d9b176f6576625d7100951d67d8c4f4"
@@ -27,7 +27,7 @@
       "hash": "1a426fbb8d27a3d3d797ae8415546bde"
     },
     "Debug/projects/TvSample/index.html": {
-      "hash": "bdd805c76293958cdd00e7ec342de195"
+      "hash": "a2adc4f8f0acdaf0a7e0162986862b83"
     },
     "Debug/projects/TvSample/main.js": {
       "hash": "99aa06d3014798d86001c324468d497f"

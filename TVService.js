@@ -1,4 +1,4 @@
-import { connectUrl, buildCommand, parseMessage } from './remoteProtocol';
+import { connectUrl, buildCommands, parseMessage } from './remoteProtocol';
 import WebSocketWithSelfSignedCert from 'react-native-websocket-self-signed';
 
 // ponytail: 8002/wss only (this TV rejects 8001 with ms.channel.unauthorized).
@@ -78,8 +78,8 @@ class TVService {
 
   sendCommand(command) {
     if (!this.ws || !this.connected) return;
-    const payload = buildCommand(command && command.action, command && command.payload);
-    if (payload) this.ws.send(JSON.stringify(payload));
+    const msgs = buildCommands(command && command.action, command && command.payload);
+    for (const m of msgs) this.ws.send(JSON.stringify(m));
   }
 
   disconnect() {
