@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>RN Remote Test</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #121212; color: #eee;
+                 font-family: sans-serif; overflow: hidden; }
+    h1 { color: #bb86fc; font-size: 40px; margin: 30px 40px 0; }
+    #last { font-size: 96px; font-weight: bold; color: #03dac6; margin: 20px 40px; }
+    #hint { color: #888; margin: 0 40px 20px; font-size: 20px; }
+    #log { list-style: none; margin: 0 40px; padding: 0; font-size: 24px; color: #aaa; }
+    #log li { padding: 4px 0; border-bottom: 1px solid #222; }
+  </style>
+</head>
+<body>
+  <h1>RN Remote Test</h1>
+  <div id="last">Press a key on the phone</div>
+  <div id="hint">Bu ekranda gorunen tus, telefonun TV'ye ulastigini dogrular. VOL/MUTE sistem tarafindan yutulabilir.</div>
+  <ul id="log"></ul>
+
+  <script>
+    // Tizen TV apps must register the keys they want to receive.
+    var KEYS = [
+      'KEY_UP', 'KEY_DOWN', 'KEY_LEFT', 'KEY_RIGHT', 'KEY_ENTER', 'KEY_RETURN',
+      'KEY_PLAY', 'KEY_PAUSE', 'KEY_STOP', 'KEY_HOME',
+      'KEY_VOLUP', 'KEY_VOLDOWN', 'KEY_MUTE',
+      'KEY_CHUP', 'KEY_CHDOWN', 'KEY_INFO'
+    ];
+
+    var NAMES = {
+      38: 'UP', 40: 'DOWN', 37: 'LEFT', 39: 'RIGHT',
+      13: 'ENTER', 10009: 'BACK', 415: 'PLAY', 19: 'PAUSE', 413: 'STOP',
+      10252: 'HOME', 447: 'VOL_UP', 448: 'VOL_DOWN', 449: 'MUTE',
+      427: 'CH_UP', 428: 'CH_DOWN', 457: 'INFO'
+    };
+
+    // Guarded so the page also opens in a plain browser for a quick look.
+    try {
+      if (typeof tizen !== 'undefined' && tizen.tvinputdevice) {
+        if (tizen.tvinputdevice.registerKeyBatch) {
+          tizen.tvinputdevice.registerKeyBatch(KEYS);
+        } else {
+          KEYS.forEach(function (k) { tizen.tvinputdevice.registerKey(k); });
+        }
+      }
+    } catch (e) {
+      console.log('key registration failed', e);
+    }
+
+    var lastEl = document.getElementById('last');
+    var logEl = document.getElementById('log');
+
+    document.addEventListener('keydown', function (e) {
+      var name = NAMES[e.keyCode] || ('keyCode ' + e.keyCode);
+      console.log('[tv-test] key', name, e.keyCode);
+      lastEl.textContent = name;
+      var li = document.createElement('li');
+      li.textContent = name + '  (' + e.keyCode + ')';
+      logEl.insertBefore(li, logEl.firstChild);
+      if (logEl.children.length > 12) logEl.removeChild(logEl.lastChild);
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>

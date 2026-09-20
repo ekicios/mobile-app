@@ -1,34 +1,32 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import WebRTCService from '../WebRTCService';
+import TVService from '../TVService';
 
 export default function ConnectionScreen() {
   const [ip, setIp] = useState('192.168.1.16');
-  const [code, setCode] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleConnect = () => {
-    if (!ip || !code || code.length !== 6) {
-      setStatus('Please enter IP and 6-digit code');
+    if (!ip) {
+      setStatus('Please enter the TV IP address');
       return;
     }
 
     setLoading(true);
     setStatus('Connecting...');
 
-    WebRTCService.connect(ip, code, (newStatus) => {
+    TVService.connect(ip, (newStatus) => {
       setStatus(newStatus);
-      console.log("webrtservice status:::", newStatus)
       if (newStatus === 'CONNECTED') {
         setLoading(false);
         router.push('/remote');
-      } else if (newStatus === 'WS_ERROR' || newStatus === 'failed' || newStatus === 'disconnected') {
+      } else if (newStatus === 'ERROR' || newStatus === 'DISCONNECTED') {
         setLoading(false);
-        setStatus('Connection failed. Please try again.');
-        WebRTCService.disconnect();
+        setStatus('Connection failed. Check the IP and that the TV is on.');
+        TVService.disconnect();
       }
     }, (msg) => {
       console.log('Message from TV:', msg);
@@ -43,7 +41,7 @@ export default function ConnectionScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Connect to TV</Text>
 
-        <Text style={styles.label}>Signaling Server IP</Text>
+        <Text style={styles.label}>TV IP Address</Text>
         <TextInput
           style={styles.input}
           value={ip}
@@ -52,16 +50,7 @@ export default function ConnectionScreen() {
           placeholderTextColor="#888"
         />
 
-        <Text style={styles.label}>6-Digit Pairing Code</Text>
-        <TextInput
-          style={[styles.input, styles.codeInput]}
-          value={code}
-          onChangeText={setCode}
-          placeholder="123456"
-          placeholderTextColor="#888"
-          keyboardType="number-pad"
-          maxLength={6}
-        />
+        <Text style={styles.hint}>Accept the “Allow” prompt on your TV after connecting.</Text>
 
         <TouchableOpacity 
           style={[styles.button, loading && styles.buttonDisabled]} 
@@ -116,14 +105,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    marginBottom: 20,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#444',
   },
-  codeInput: {
-    fontSize: 24,
-    textAlign: 'center',
-    letterSpacing: 8,
+  hint: {
+    color: '#888888',
+    fontSize: 12,
+    marginBottom: 20,
   },
   button: {
     backgroundColor: '#bb86fc',

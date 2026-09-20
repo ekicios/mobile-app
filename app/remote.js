@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import WebRTCService from '../WebRTCService';
+import TVService from '../TVService';
 
 export default function RemoteScreen() {
   const router = useRouter();
   const [customText, setCustomText] = useState('');
 
   const send = (action, payload = null) => {
-    WebRTCService.sendCommand({ action, payload, timestamp: Date.now() });
+    TVService.sendCommand({ action, payload, timestamp: Date.now() });
   };
 
   const handleDisconnect = () => {
-    WebRTCService.disconnect();
+    TVService.disconnect();
     router.replace('/');
   };
 

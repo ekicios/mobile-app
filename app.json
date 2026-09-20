@@ -9,7 +9,10 @@
     "ios": {
       "supportsTablet": true,
       "bitcode": false,
-      "bundleIdentifier": "com.oseyf.mobile-app"
+      "bundleIdentifier": "com.oseyf.mobile-app",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "This app connects to your Samsung TV on the local network."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,22 +23,16 @@
       },
       "permissions": [
         "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.CAMERA",
-        "android.permission.INTERNET",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW",
-        "android.permission.WAKE_LOCK",
-        "android.permission.BLUETOOTH"
-      ]
+        "android.permission.INTERNET"
+      ],
+      "usesCleartextTraffic": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "scheme": "webrtcremote",
     "plugins": [
-      "expo-router",
-      "@config-plugins/react-native-webrtc"
+      "expo-router"
     ]
   }
 }
