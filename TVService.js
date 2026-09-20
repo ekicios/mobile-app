@@ -53,7 +53,7 @@ class TVService {
     };
 
     this.ws.onerror = (e) => {
-      console.log('[TVService] error:', e && e.message);
+      console.log('[TVService] error event:', JSON.stringify(e));
       clearTimeout(this.connectTimer);
       this.onStatusChange('ERROR');
     };
