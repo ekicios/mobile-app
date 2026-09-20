@@ -2,7 +2,7 @@
 // Verified against Toxblh/samsung-tv-remote (src/helpers.ts, src/samsung.ts).
 // CommonJS on purpose: the phone app (Metro) and the node test/mock both load it.
 
-const APP_NAME = 'RN Remote';
+const APP_NAME = 'RN Remote 2';
 
 const KEY_BY_ACTION = {
   UP: 'KEY_UP',

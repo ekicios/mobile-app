@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import TVService from '../TVService';
 
 export default function ConnectionScreen() {
-  const [ip, setIp] = useState('192.168.1.16');
+  const [ip, setIp] = useState('192.168.1.3');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -23,6 +23,9 @@ export default function ConnectionScreen() {
       if (newStatus === 'CONNECTED') {
         setLoading(false);
         router.push('/remote');
+      } else if (newStatus === 'UNAUTHORIZED') {
+        setLoading(false);
+        setStatus('TV denied access. On the TV: Settings → General → External Device Manager → Device Connection Manager → set Access Notification to "First Time Only", remove old entries, then retry.');
       } else if (newStatus === 'ERROR' || newStatus === 'DISCONNECTED') {
         setLoading(false);
         setStatus('Connection failed. Check the IP and that the TV is on.');

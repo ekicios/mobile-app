@@ -16,6 +16,7 @@ class TVService {
   }
 
   connect(ip, statusCb, messageCb) {
+    if (this.ws) this.disconnect();
     this.onStatusChange = statusCb || (() => {});
     this.onMessage = messageCb || (() => {});
     this.onStatusChange('CONNECTING');
@@ -33,7 +34,10 @@ class TVService {
     this.ws.onmessage = (event) => {
       const msg = parseMessage(event.data);
       if (!msg) return;
-      if (msg.event === 'ms.channel.connect') {
+      if (msg.event === 'ms.channel.unauthorized' || msg.event === 'ms.service.unauthorized') {
+        clearTimeout(this.connectTimer);
+        this.onStatusChange('UNAUTHORIZED');
+      } else if (msg.event === 'ms.channel.connect') {
         clearTimeout(this.connectTimer);
         // ponytail: treated as CONNECTED even without a token; keys fail until the TV Allow dialog is accepted.
         if (msg.data && msg.data.token) this.token = msg.data.token;

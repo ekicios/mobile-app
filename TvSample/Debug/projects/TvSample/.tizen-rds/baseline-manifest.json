@@ -1,0 +1,52 @@
+{
+  "deployId": 1,
+  "projectDir": "/Users/oseyf/Project/mobile-app/TvSample",
+  "timestamp": "2026-09-20T15:30:08.526Z",
+  "hashAlgorithm": "xxh3-128",
+  "input": {
+    "server.js": {
+      "hash": "fa3ca23f1cff0e9c3e06e47d89948399"
+    },
+    "protocol.test.js": {
+      "hash": "86de6abbe10b71aaf0a2a677035614b0"
+    },
+    "main.js": {
+      "hash": "99aa06d3014798d86001c324468d497f"
+    },
+    "index.html": {
+      "hash": "341170678114928435a73e4fc800fdbc"
+    },
+    "icon.png": {
+      "hash": "1a426fbb8d27a3d3d797ae8415546bde"
+    },
+    "config.xml": {
+      "hash": "17b9b9ea7485c0e80e3e2c80be1d917d"
+    },
+    "css/style.css": {
+      "hash": "0501cdb5a64315918af26768b9cdf9cd"
+    }
+  },
+  "output": {
+    "Debug/projects/TvSample/server.js": {
+      "hash": "fa3ca23f1cff0e9c3e06e47d89948399"
+    },
+    "Debug/projects/TvSample/protocol.test.js": {
+      "hash": "86de6abbe10b71aaf0a2a677035614b0"
+    },
+    "Debug/projects/TvSample/main.js": {
+      "hash": "99aa06d3014798d86001c324468d497f"
+    },
+    "Debug/projects/TvSample/index.html": {
+      "hash": "341170678114928435a73e4fc800fdbc"
+    },
+    "Debug/projects/TvSample/icon.png": {
+      "hash": "1a426fbb8d27a3d3d797ae8415546bde"
+    },
+    "Debug/projects/TvSample/config.xml": {
+      "hash": "17b9b9ea7485c0e80e3e2c80be1d917d"
+    },
+    "Debug/projects/TvSample/css/style.css": {
+      "hash": "0501cdb5a64315918af26768b9cdf9cd"
+    }
+  }
+}
