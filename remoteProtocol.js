@@ -4,6 +4,9 @@
 
 const APP_NAME = 'RN Remote 2';
 
+// ponytail: MSF channel name; must match TvSample/index.html CHANNEL_NAME.
+const CHANNEL = 'com.samsung.multiscreen.rnremote';
+
 const KEY_BY_ACTION = {
   UP: 'KEY_UP',
   DOWN: 'KEY_DOWN',
@@ -49,31 +52,31 @@ function toBase64(str) {
 function connectUrl(ip, port, token) {
   const name = encodeURIComponent(toBase64(APP_NAME));
   const scheme = port === 8002 ? 'wss' : 'ws';
-  return `${scheme}://${ip}:${port}/api/v2/channels/samsung.remote.control?name=${name}${token ? `&token=${token}` : ''}`;
+  return `${scheme}://${ip}:${port}/api/v2/channels/${CHANNEL}?name=${name}${token ? `&token=${token}` : ''}`;
 }
 
 // Returns the list of messages to send (empty for unknown actions).
-// Some TVs require the custom.remote.textReceived broadcast before accepting IME text.
+// Everything goes over the MSF channel as a JSON payload; the TV app decodes it.
 function buildCommands(action, payload) {
+  let type;
+  let value;
   if (action === 'TEXT') {
-    return [
-      { method: 'ms.channel.emit', params: { event: 'custom.remote.textReceived', to: 'broadcast' } },
-      {
-        method: 'ms.remote.control',
-        params: {
-          Cmd: toBase64(payload == null ? '' : String(payload)),
-          DataOfCmd: 'base64',
-          TypeOfRemote: 'SendInputString',
-        },
-      },
-    ];
+    type = 'text';
+    value = payload == null ? '' : String(payload);
+  } else if (KEY_BY_ACTION[action]) {
+    type = 'key';
+    value = action;
+  } else {
+    return [];
   }
-  const key = KEY_BY_ACTION[action];
-  if (!key) return [];
   return [
     {
-      method: 'ms.remote.control',
-      params: { Cmd: 'Click', DataOfCmd: key, Option: 'false', TypeOfRemote: 'SendRemoteKey' },
+      method: 'ms.channel.emit',
+      params: {
+        event: 'say',
+        to: 'host',
+        data: JSON.stringify({ type, value }),
+      },
     },
   ];
 }
