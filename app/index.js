@@ -2,12 +2,25 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import TVService from '../TVService';
+import { discoverTVs } from '../discoverTVs';
 
 export default function ConnectionScreen() {
   const [ip, setIp] = useState('192.168.1.3');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tvs, setTvs] = useState([]);
+  const [scanning, setScanning] = useState(false);
   const router = useRouter();
+
+  const handleFind = async () => {
+    setScanning(true);
+    setTvs([]);
+    setStatus('Searching local network...');
+    const found = await discoverTVs();
+    setTvs(found);
+    setScanning(false);
+    setStatus(found.length ? '' : 'No Samsung TV found. Enter the IP manually.');
+  };
 
   const handleConnect = () => {
     if (!ip) {
@@ -43,6 +56,20 @@ export default function ConnectionScreen() {
     >
       <View style={styles.card}>
         <Text style={styles.title}>Connect to TV</Text>
+
+        <TouchableOpacity
+          style={[styles.findBtn, scanning && styles.buttonDisabled]}
+          onPress={handleFind}
+          disabled={scanning}
+        >
+          <Text style={styles.findText}>{scanning ? 'Searching…' : 'Find TVs'}</Text>
+        </TouchableOpacity>
+
+        {tvs.map((t) => (
+          <TouchableOpacity key={t} style={styles.tvItem} onPress={() => setIp(t)}>
+            <Text style={styles.tvText}>{t}</Text>
+          </TouchableOpacity>
+        ))}
 
         <Text style={styles.label}>TV IP Address</Text>
         <TextInput
@@ -126,6 +153,29 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#664d8a',
+  },
+  findBtn: {
+    backgroundColor: '#03dac6',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  findText: {
+    color: '#121212',
+    fontWeight: 'bold',
+  },
+  tvItem: {
+    backgroundColor: '#2d2d2d',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#03dac6',
+  },
+  tvText: {
+    color: '#03dac6',
+    fontSize: 16,
   },
   buttonText: {
     color: '#121212',

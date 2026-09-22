@@ -21,6 +21,10 @@
       {
         "path": "Debug/projects/TvSample/protocol.test.js.git",
         "type": "modify"
+      },
+      {
+        "path": "Debug/projects/TvSample/vendor/msf-2.0.14.min.js",
+        "type": "modify"
       }
     ]
   }

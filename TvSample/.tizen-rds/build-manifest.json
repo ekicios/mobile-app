@@ -14,6 +14,9 @@
     },
     "config.xml": {
       "hash": "e927d24b011a8c8acc92a069f3d1bcf6"
+    },
+    "vendor/msf-2.0.14.min.js": {
+      "hash": "4cdbe6f10ca2d91f33d650189141046d"
     }
   },
   "output": {
@@ -40,6 +43,9 @@
     },
     "Debug/projects/TvSample/.vscode/tasks.json": {
       "hash": "0560d2cda1b78ee343bdf590069963ab"
+    },
+    "Debug/projects/TvSample/vendor/msf-2.0.14.min.js": {
+      "hash": "4cdbe6f10ca2d91f33d650189141046d"
     }
   }
 }
