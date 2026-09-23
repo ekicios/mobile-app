@@ -68,6 +68,14 @@
       where window.webOS is simply absent.
     -->
     <script src="webOSTV.js"></script>
+    <!--
+      Connect SDK JavaScript Bridge (app-side). It implements the exact
+      app2app channel handshake, including answering `p2p.join-request` with
+      `p2p.join-response { allowJoin:true }`. Loaded before our inline script
+      so `window.connectsdk` is available. If it fails to load we fall back
+      to the hand-rolled channel below.
+    -->
+    <script src="connect_bridge.js"></script>
 
     <script>
       (function () {
@@ -257,18 +265,24 @@
           }
         }
 
+        // Returns true if the Connect SDK bridge took over the channel.
         function initConnectBridge() {
-          if (window.connectsdk && window.connectsdk.ConnectManager) {
-            try {
-              var mgr = new window.connectsdk.ConnectManager();
-              mgr.on("message", function (data) {
-                handleIncoming(data && data.message);
-              });
-              mgr.init();
-              log("Connect SDK bridge initialised", "sys");
-            } catch (e) {
-              log("Connect SDK bridge init failed: " + e.message, "err");
-            }
+          if (!(window.connectsdk && window.connectsdk.ConnectManager)) return false;
+          try {
+            var mgr = new window.connectsdk.ConnectManager();
+            mgr.on("message", function (data) {
+              handleIncoming(data && data.message);
+            });
+            mgr.on("ready", function () {
+              setBadge("badge-channel", "channel: open (bridge)", "ok");
+              log("Connect SDK bridge channel ready", "sys");
+            });
+            mgr.init();
+            log("Connect SDK bridge initialised", "sys");
+            return true;
+          } catch (e) {
+            log("Connect SDK bridge init failed: " + e.message, "err");
+            return false;
           }
         }
 
@@ -328,8 +342,12 @@
           if (onTV && pSystem && typeof pSystem.stageReady === "function") {
             pSystem.stageReady();
           }
-          initConnectBridge();
-          createAppChannel();
+          // Prefer the Connect SDK bridge (correct join handshake). Only fall
+          // back to the hand-rolled channel when the bridge is unavailable.
+          if (!initConnectBridge()) {
+            log("bridge unavailable — using hand-rolled channel", "sys");
+            createAppChannel();
+          }
         }
 
         if (document.readyState === "loading") {
