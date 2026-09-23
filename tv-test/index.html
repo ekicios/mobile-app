@@ -214,7 +214,18 @@
             } else if (message && message.type === "p2p.depart") {
               log("p2p.depart from " + JSON.stringify(message.from), "sys");
             } else if (message && message.type === "p2p.join-request") {
-              log("p2p.join-request", "sys");
+              // Mobile asks to join this app's channel. We MUST answer with
+              // p2p.join-response {allowJoin:true}, otherwise the TV never
+              // routes p2p messages here and connectToApp stays un-CONNECTED.
+              log("p2p.join-request from " + JSON.stringify(message.from), "sys");
+              var reqId = message.payload && message.payload.requestId;
+              ws.send(
+                JSON.stringify({
+                  type: "p2p.join-response",
+                  payload: { allowJoin: true, requestId: reqId },
+                })
+              );
+              log("sent p2p.join-response allowJoin=true", "sys");
             } else {
               log("<- " + JSON.stringify(message), "in");
             }

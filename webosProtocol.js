@@ -30,6 +30,12 @@ function buildRequest(id, uri, payload) {
   return { id, type: 'request', uri, payload };
 }
 
+// subscription isteği. TV, abone olduğun kaynağı her güncellediğinde
+// aynı id ile yeni "response" mesajları gönderir.
+function buildSubscribe(id, uri, payload) {
+  return { id, type: 'subscribe', uri, payload };
+}
+
 // p2p app-to-app mesajı. `to` = connectToApp'tan dönen fullAppId.
 function buildP2P(fullAppId, payload) {
   return { type: 'p2p', to: fullAppId, payload };
@@ -43,4 +49,4 @@ function parseMessage(raw) {
   }
 }
 
-module.exports = { REGISTER_URI, manifest, buildRegister, buildRequest, buildP2P, parseMessage };
+module.exports = { REGISTER_URI, manifest, buildRegister, buildRequest, buildSubscribe, buildP2P, parseMessage };

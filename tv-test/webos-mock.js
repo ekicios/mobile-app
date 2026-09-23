@@ -14,6 +14,7 @@ function createMockServer({
   errorOnLaunch = false, // launchWebApp -> type:"error"
   failLaunch = false, // launchWebApp -> returnValue:false
   connectState = 'CONNECTED', // connectToApp -> state
+  sendPrompt = false, // register cevabindan once pairingType:PROMPT gonder
 } = {}) {
   const wss = new WebSocketServer({ port });
 
@@ -29,7 +30,11 @@ function createMockServer({
         registered = true;
         log('[webos-mock] register: ' + JSON.stringify(m.payload));
         if (silentRegister) return;
-        // Gerçek SSAP: register -> type:"registered" (response değil).
+        if (sendPrompt) {
+          // Gerçek TV: once pairing istegi, sonra (kullanici onayi yerine) registered.
+          ws.send(JSON.stringify({ id: m.id, type: 'response', payload: { pairingType: 'PROMPT', returnValue: true } }));
+        }
+        // Gerçek SSAP: register -> type:"registered" (onay sonrasi).
         const payload = pairingRequired ? {} : { 'client-key': 'mock-client-key-123' };
         ws.send(JSON.stringify({ id: m.id, type: 'registered', payload }));
         return;
@@ -45,24 +50,38 @@ function createMockServer({
         return;
       }
 
-      if (m.type === 'request') {
-        if (m.uri === 'ssap://webapp/launchWebApp') {
-          log('[webos-mock] launchWebApp ' + m.payload.webAppId);
-          if (errorOnLaunch) {
-            ws.send(JSON.stringify({ id: m.id, type: 'error', error: '403 unauthorized' }));
-          } else if (failLaunch) {
-            reply(ws, m.id, { returnValue: false, errorText: 'launch failed' });
-          } else {
-            reply(ws, m.id, { sessionId: 'session-1', appId: m.payload.webAppId });
-          }
-        } else if (m.uri === 'ssap://webapp/connectToApp') {
-          log('[webos-mock] connectToApp ' + m.payload.webAppId);
-          reply(ws, m.id, { state: connectState, appId: FULL_APP_ID });
+      // launchWebApp: request, parametre `id`.
+      if (m.type === 'request' && m.uri === 'ssap://webapp/launchWebApp') {
+        log('[webos-mock] launchWebApp ' + m.payload.webAppId);
+        if (!m.payload.webAppId) {
+          ws.send(JSON.stringify({ id: m.id, type: 'error', error: '500 missing or invalid required property webAppId' }));
+        } else if (errorOnLaunch) {
+          ws.send(JSON.stringify({ id: m.id, type: 'error', error: '403 unauthorized' }));
+        } else if (failLaunch) {
+          reply(ws, m.id, { returnValue: false, errorText: 'launch failed' });
         } else {
-          log('[webos-mock] unknown uri ' + m.uri);
-          reply(ws, m.id, { returnValue: false, errorText: 'unknown uri' });
+          reply(ws, m.id, { sessionId: 'session-1', appId: m.payload.webAppId });
         }
+        return;
       }
+
+      // connectToApp: SUBSCRIPTION. request gelirse gercek TV gibi reddet.
+      if (m.uri === 'ssap://webapp/connectToApp') {
+        if (m.type === 'request') {
+          reply(ws, m.id, { returnValue: false, errorCode: -1000, errorText: 'Expected subscription' });
+          return;
+        }
+        log('[webos-mock] connectToApp (subscribe) ' + (m.payload.webAppId || m.payload.appId));
+        if (!m.payload.webAppId && !m.payload.appId) {
+          reply(ws, m.id, { returnValue: false, errorCode: -1000, errorText: 'Expected property appId or webAppId' });
+          return;
+        }
+        reply(ws, m.id, { state: connectState, appId: FULL_APP_ID });
+        return;
+      }
+
+      log('[webos-mock] unknown uri ' + m.uri);
+      reply(ws, m.id, { returnValue: false, errorText: 'unknown uri' });
     });
 
     ws.on('close', () => log('[webos-mock] closed'));

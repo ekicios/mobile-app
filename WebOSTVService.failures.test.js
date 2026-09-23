@@ -41,15 +41,18 @@ async function withMock(opts, fn) {
     svc.disconnect();
   });
 
-  // 3) connectToApp WAITING_FOR_APP -> hata, fullAppId null
+  // 3) connectToApp WAITING_FOR_APP -> hata FIRLATILMAZ; abonelik acik kalir,
+  //    fullAppId henuz set edilmez (TV app hazir olunca CONNECTED push edecek).
   await withMock({ port: 3005, connectState: 'WAITING_FOR_APP' }, async () => {
     const svc = new WebOSTVService(wsAdapter);
     svc.connect('ws://localhost:3005');
     await wait(200);
     let err = null;
-    svc.connectToApp('com.myapp.hosted', (e) => { err = e; });
+    let called = false;
+    svc.connectToApp('com.myapp.hosted', (e) => { err = e; called = true; });
     await wait(150);
-    assert.ok(err instanceof Error, 'CONNECTED dışı state hata dönmeli');
+    assert.ok(!called, 'WAITING_FOR_APP icin callback cagrilmamali (abonelik bekler)');
+    assert.strictEqual(err, null, 'hata firlatilmamali');
     assert.strictEqual(svc.fullAppId, null, 'fullAppId set edilmemeli');
     svc.disconnect();
   });
