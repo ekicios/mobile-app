@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TV+ Remote Test</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0; width: 100%; height: 100%;
+        background: #0b0b0f; color: #f5f5f7;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        overflow: hidden;
+      }
+      #app { display: flex; flex-direction: column; height: 100%; padding: 4vh 4vw; gap: 2vh; }
+      header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+      h1 { font-size: clamp(20px, 2.4vw, 34px); margin: 0; font-weight: 600; }
+      .badges { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+      .badge {
+        font-size: clamp(12px, 1vw, 16px); padding: 0.3em 0.8em;
+        border-radius: 999px; background: #1e1e2a; border: 1px solid #33334a;
+      }
+      .badge.ok { background: #10331f; border-color: #1c6b3a; color: #7ef0a5; }
+      .badge.warn { background: #332910; border-color: #6b551c; color: #f0d97e; }
+      main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; gap: 1rem; }
+      #log {
+        background: #111118; border: 1px solid #26263a; border-radius: 12px;
+        padding: 1rem 1.2rem; overflow-y: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: clamp(13px, 1.1vw, 18px); line-height: 1.5;
+      }
+      #log p { margin: 0 0 0.4em; white-space: pre-wrap; word-break: break-word; }
+      #log .ts { color: #6b6b8a; margin-right: 0.6em; }
+      #log .in { color: #7ec8f0; }
+      #log .sys { color: #b48ef0; }
+      #log .err { color: #f07e7e; }
+      footer { font-size: clamp(12px, 1vw, 16px); color: #9a9ab5; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>TV+ Remote Test</h1>
+        <div class="badges">
+          <span class="badge" id="badge-env">env: checking…</span>
+          <span class="badge" id="badge-appid">appId: —</span>
+          <span class="badge" id="badge-channel">channel: idle</span>
+        </div>
+      </header>
+
+      <main>
+        <div id="log" role="log" aria-live="polite"></div>
+      </main>
+
+      <footer>
+        Mobile &rarr; <code>p2p</code> messages and <code>webOSLaunch / webOSRelaunch</code>
+        events appear in the log above.
+      </footer>
+    </div>
+
+    <!--
+      webOSTV.js is the official helper from the webOS TV SDK (webOSTV.js).
+      It wraps luna service calls and exposes
+      window.webOS.{service, deviceInfo, platform, fetchAppId, ...}.
+      Bundled locally so the page also runs outside webOS (e.g. Vercel),
+      where window.webOS is simply absent.
+    -->
+    <script src="webOSTV.js"></script>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // ---------------------------------------------------------------
+        // Environment detection
+        // ---------------------------------------------------------------
+        // WAM (Web App Manager) of webOS TV 5.0+ exposes `webOSSystem`.
+        // webOS TV 4.x and lower expose `PalmSystem` only. We detect both so
+        // the app degrades gracefully when hosted outside a TV (Vercel/browser).
+        var pSystem = window.webOSSystem || window.PalmSystem || null;
+        var onTV = !!pSystem;
+
+        // App ID is set by WAM via `PalmSystem.identifier`
+        // ("<app-id> <process-id>"). Fall back to appinfo.json id for the
+        // non-TV (Vercel) case so both environments show the same value.
+        var APP_ID = "com.myapp.hosted";
+        if (pSystem && pSystem.identifier) {
+          var parts = String(pSystem.identifier).split(" ");
+          if (parts[0]) APP_ID = parts[0];
+        }
+
+        // ---------------------------------------------------------------
+        // Logging (on-screen console — a real TV has no devtools window)
+        // ---------------------------------------------------------------
+        var logEl = document.getElementById("log");
+        function log(msg, cls) {
+          var line = document.createElement("p");
+          var ts = document.createElement("span");
+          ts.className = "ts";
+          ts.textContent = new Date().toLocaleTimeString();
+          line.appendChild(ts);
+          var body = document.createElement("span");
+          if (cls) body.className = cls;
+          body.textContent = typeof msg === "string" ? msg : JSON.stringify(msg);
+          line.appendChild(body);
+          logEl.appendChild(line);
+          logEl.scrollTop = logEl.scrollHeight;
+          console.log("[webos-hosted]", msg);
+        }
+
+        function setBadge(id, text, cls) {
+          var el = document.getElementById(id);
+          el.textContent = text;
+          el.className = "badge" + (cls ? " " + cls : "");
+        }
+
+        // ---------------------------------------------------------------
+        // appinfo.json (webOS metadata, fetched at runtime by webOSTV.js)
+        // ---------------------------------------------------------------
+        if (window.webOS && window.webOS.fetchAppInfo) {
+          window.webOS.fetchAppInfo(function (info) {
+            if (info && info.id) log("appinfo.json id = " + info.id, "sys");
+          });
+        }
+
+        // ---------------------------------------------------------------
+        // App-to-app channel (Connect SDK JS Bridge equivalent)
+        // ---------------------------------------------------------------
+        // The mobile app talks SSAP (wss://TV:3001) and delivers JSON over the
+        // secondscreen app2app channel. On the TV side the channel is created
+        // with luna://com.webos.service.secondscreen.gateway/app2app/createAppChannel.
+        //
+        // The official Connect SDK JavaScript Bridge (connectsdk.ConnectManager)
+        // wraps exactly this call. To keep this sample dependency-free we call the
+        // luna service directly via window.webOS.service. To use the bridge
+        // instead, add connect_bridge.min.js and use
+        // `new connectsdk.ConnectManager()` + `.on('message', ...)` — the wire
+        // protocol is identical.
+        var APP2APP_URI = "luna://com.webos.service.secondscreen.gateway/app2app/";
+
+        function createAppChannel() {
+          if (!onTV || !window.webOS || !window.webOS.service) {
+            setBadge("badge-channel", "channel: n/a (not on TV)", "warn");
+            log(
+              "Not running inside webOS — app2app channel skipped. " +
+                "The page still works as a plain hosted site.",
+              "sys"
+            );
+            return;
+          }
+          window.webOS.service.request(APP2APP_URI + "createAppChannel", {
+            method: "createAppChannel",
+            parameters: { appId: APP_ID },
+            onSuccess: function (res) {
+              setBadge("badge-channel", "channel: open", "ok");
+              log("createAppChannel ok: " + JSON.stringify(res), "sys");
+              connectAppChannel();
+            },
+            onFailure: function (err) {
+              setBadge("badge-channel", "channel: error", "warn");
+              log("createAppChannel failed: " + JSON.stringify(err), "err");
+            },
+          });
+        }
+
+        function connectAppChannel() {
+          window.webOS.service.request(APP2APP_URI + "connectAppChannel", {
+            method: "connectAppChannel",
+            parameters: { appId: APP_ID },
+            subscribe: true,
+            onSuccess: function (res) {
+              // The gateway pushes each received p2p payload on this
+              // subscription. Handle both shapes for robustness.
+              if (res && res.payload !== undefined) handleIncoming(res.payload);
+              else if (res && res.message !== undefined) handleIncoming(res.message);
+            },
+            onFailure: function (err) {
+              log("connectAppChannel failed: " + JSON.stringify(err), "err");
+            },
+          });
+        }
+
+        // ---------------------------------------------------------------
+        // Incoming message handling (app2app + Connect SDK bridge)
+        // ---------------------------------------------------------------
+        function handleIncoming(raw) {
+          var data = raw;
+          if (typeof raw === "string") {
+            try { data = JSON.parse(raw); } catch (e) { /* keep string */ }
+          }
+          log("<- message: " + JSON.stringify(data), "in");
+          if (data && data.type === "OPEN_PAGE" && data.page) {
+            log('   action: open page "' + data.page + '"', "in");
+          }
+        }
+
+        function initConnectBridge() {
+          if (window.connectsdk && window.connectsdk.ConnectManager) {
+            try {
+              var mgr = new window.connectsdk.ConnectManager();
+              mgr.on("message", function (data) {
+                handleIncoming(data && data.message);
+              });
+              mgr.init();
+              log("Connect SDK bridge initialised", "sys");
+            } catch (e) {
+              log("Connect SDK bridge init failed: " + e.message, "err");
+            }
+          }
+        }
+
+        // ---------------------------------------------------------------
+        // webOS lifecycle events
+        // ---------------------------------------------------------------
+        // `webOSLaunch` fires when the app is (re)launched by WAM.
+        document.addEventListener(
+          "webOSLaunch",
+          function (inData) {
+            log("webOSLaunch: " + JSON.stringify((inData && inData.detail) || {}), "sys");
+            var detail = inData && inData.detail;
+            if (detail && detail.launchParams) handleIncoming(detail.launchParams);
+          },
+          true
+        );
+
+        // `webOSRelaunch` fires when the app is brought back to the foreground.
+        // If appinfo.json sets `handlesRelaunch: true`, the app MUST call
+        // webOSSystem.activate() (PalmSystem.activate() on older TVs) once its
+        // background work is done, otherwise it stays invisible. We keep
+        // handlesRelaunch=false in appinfo.json, but guard anyway.
+        document.addEventListener(
+          "webOSRelaunch",
+          function (inData) {
+            log("webOSRelaunch: " + JSON.stringify((inData && inData.detail) || {}), "sys");
+            var detail = inData && inData.detail;
+            if (detail && detail.launchParams) handleIncoming(detail.launchParams);
+            if (pSystem && typeof pSystem.activate === "function") pSystem.activate();
+          },
+          true
+        );
+
+        // `visibilitychange` mirrors foreground/background transitions.
+        document.addEventListener("visibilitychange", function () {
+          log(document.hidden ? "hidden" : "visible", "sys");
+        });
+
+        // ---------------------------------------------------------------
+        // Remote control: observe BACK (keyCode 461). With
+        // disableBackHistoryAPI=false the platform routes BACK to the HTML
+        // history API; we only log here for the PoC.
+        // ---------------------------------------------------------------
+        window.addEventListener("keydown", function (e) {
+          var code = e.keyCode || e.which;
+          if (code === 461) log("BACK pressed", "sys");
+        });
+
+        // ---------------------------------------------------------------
+        // Boot
+        // ---------------------------------------------------------------
+        function boot() {
+          var envName = onTV ? "webOS TV" : "browser";
+          setBadge("badge-env", "env: " + envName, onTV ? "ok" : "warn");
+          setBadge("badge-appid", "appId: " + APP_ID);
+          log("boot | env=" + envName + " | appId=" + APP_ID, "sys");
+          if (onTV && pSystem && typeof pSystem.stageReady === "function") {
+            pSystem.stageReady();
+          }
+          initConnectBridge();
+          createAppChannel();
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", boot);
+        } else {
+          boot();
+        }
+      })();
+    </script>
+  </body>
+</html>

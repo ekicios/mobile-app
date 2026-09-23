@@ -1,0 +1,12 @@
+{
+    "vendor": "Turkcell",
+    "largeIcon": "largeIcon.png",
+    "icon": "icon.png",
+    "main": "index.html",
+    "id": "com.tvplus.app",
+    "title": "TV+",
+    "type": "web",
+    "version": "3.2.0",
+    "resolution":"1280x720",
+    "disableBackHistoryAPI":true
+}

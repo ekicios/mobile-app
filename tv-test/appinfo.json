@@ -1,0 +1,18 @@
+{
+  "id": "com.myapp.hosted",
+  "title": "TV+ Remote Test",
+  "type": "web",
+  "main": "index.html",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "vendor": "Turkcell",
+  "version": "1.0.0",
+  "appDescription": "webOS hosted app PoC for mobile-to-TV JSON messaging",
+  "resolution": "1920x1080",
+  "bgColor": "#0b0b0f",
+  "iconColor": "#0b0b0f",
+  "disableBackHistoryAPI": false,
+  "handlesRelaunch": false,
+  "transparent": false,
+  "requiredPermissions": ["app2app", "secondscreen"]
+}
