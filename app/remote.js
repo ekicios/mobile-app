@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
-import TVService from '../TVService';
+import { sendToTV, resetWebOSSession } from '../sendToTV';
+import WebOSTV from '../WebOSTVService';
 
 // Default to Turkish; falls back to en-US on language-not-supported.
 const LOCALE = 'tr-TR';
@@ -24,9 +25,16 @@ export default function RemoteScreen() {
       .catch((e) => console.log('[speech] getSupportedLocales failed:', e && e.message));
   }, []);
 
-  const send = (action, payload = null) => {
-    console.log('[remote] send', action, payload);
-    TVService.sendCommand({ action, payload, timestamp: Date.now() });
+  // Maps a remote action to the p2p JSON the hosted webOS app expects.
+  const send = async (action, payload = null) => {
+    const json = { type: action, timestamp: Date.now() };
+    if (payload != null) json.payload = payload;
+    console.log('[remote] send', JSON.stringify(json));
+    try {
+      await sendToTV(json);
+    } catch (e) {
+      console.log('[remote] send failed:', e && e.message);
+    }
   };
 
   useSpeechRecognitionEvent('start', () => {
@@ -59,7 +67,8 @@ export default function RemoteScreen() {
   };
 
   const handleDisconnect = () => {
-    TVService.disconnect();
+    resetWebOSSession();
+    WebOSTV.disconnect();
     router.replace('/');
   };
 

@@ -1,25 +1,28 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import TVService from '../TVService';
-import { discoverTVs } from '../discoverTVs';
+import WebOSTV from '../WebOSTVService';
+import { sendToTV } from '../sendToTV';
+
+const WEB_APP_ID = 'com.myapp.hosted'; // must match tv-test/appinfo.json `id`
 
 export default function ConnectionScreen() {
-  const [ip, setIp] = useState('192.168.1.3');
+  const [ip, setIp] = useState('192.168.1.29');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
-  const [tvs, setTvs] = useState([]);
   const [scanning, setScanning] = useState(false);
   const router = useRouter();
 
+  // LG webOS TVs are not discovered via Samsung SSDP; guide the user to the IP.
   const handleFind = async () => {
     setScanning(true);
-    setTvs([]);
-    setStatus('Searching local network...');
-    const found = await discoverTVs();
-    setTvs(found);
-    setScanning(false);
-    setStatus(found.length ? '' : 'No Samsung TV found. Enter the IP manually.');
+    setStatus('Searching…');
+    setTimeout(() => {
+      setScanning(false);
+      setStatus(
+        'Enter your LG webOS TV IP (Settings → Network → Wired/Wi‑Fi Connection → see IP address).'
+      );
+    }, 600);
   };
 
   const handleConnect = () => {
@@ -29,20 +32,35 @@ export default function ConnectionScreen() {
     }
 
     setLoading(true);
-    setStatus('Connecting...');
+    setStatus('Connecting…');
 
-    TVService.connect(ip, (newStatus) => {
+    WebOSTV.connect(ip, (newStatus) => {
       setStatus(newStatus);
+
       if (newStatus === 'CONNECTED') {
-        setLoading(false);
-        router.push('/remote');
+        // SSAP handshake done. Now launch the hosted app and connect to its
+        // app channel (this is what makes p2p JSON delivery possible).
+        setStatus('Launching app…');
+        sendToTV({ type: '__PING__' })
+          .then(() => {
+            setLoading(false);
+            router.push('/remote');
+          })
+          .catch((e) => {
+            setLoading(false);
+            setStatus('Connected, but app-channel failed: ' + (e && e.message));
+            console.log('[index] app channel error:', e && e.message);
+          });
+      } else if (newStatus === 'PAIRING') {
+        // TV shows an on-screen Allow prompt; wait for the user to accept.
+        setStatus('Waiting for TV confirmation — press “Allow” on the TV.');
       } else if (newStatus === 'UNAUTHORIZED') {
         setLoading(false);
-        setStatus('TV denied access. On the TV: Settings → General → External Device Manager → Device Connection Manager → set Access Notification to "First Time Only", remove old entries, then retry.');
+        setStatus('TV denied access. Remove old entries on the TV, then retry.');
       } else if (newStatus === 'ERROR' || newStatus === 'DISCONNECTED') {
         setLoading(false);
         setStatus('Connection failed. Check the IP and that the TV is on.');
-        TVService.disconnect();
+        WebOSTV.disconnect();
       }
     }, (msg) => {
       console.log('Message from TV:', msg);
@@ -64,12 +82,6 @@ export default function ConnectionScreen() {
         >
           <Text style={styles.findText}>{scanning ? 'Searching…' : 'Find TVs'}</Text>
         </TouchableOpacity>
-
-        {tvs.map((t) => (
-          <TouchableOpacity key={t} style={styles.tvItem} onPress={() => setIp(t)}>
-            <Text style={styles.tvText}>{t}</Text>
-          </TouchableOpacity>
-        ))}
 
         <Text style={styles.label}>TV IP Address</Text>
         <TextInput
