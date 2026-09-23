@@ -55,7 +55,7 @@
       </main>
 
       <footer>
-        Mobile &rarr; <code>p2p</code> messages and <code>webOSLaunch / webOSRelaunch</code>
+        OSEYF &rarr; Mobile &rarr; <code>p2p</code> messages and <code>webOSLaunch / webOSRelaunch</code>
         events appear in the log above.
       </footer>
     </div>
@@ -138,7 +138,31 @@
         // instead, add connect_bridge.min.js and use
         // `new connectsdk.ConnectManager()` + `.on('message', ...)` — the wire
         // protocol is identical.
-        var APP2APP_URI = "luna://com.webos.service.secondscreen.gateway/app2app/";
+        //
+        // IMPORTANT: webOSTV.js's `service.request(service, opts)` builds the
+        // luna URI as `service + "/" + opts.method`. So `service` MUST be the
+        // service name WITHOUT the trailing method — do NOT append the method
+        // to the URI and pass it again in `method`, otherwise the platform sees
+        // a doubled category like ".../app2app/createAppChannel/createAppChannel".
+        var APP2APP_SERVICE =
+          "luna://com.webos.service.secondscreen.gateway/app2app";
+
+        // luna call wrapper — Promise-based so we can chain create -> connect.
+        function luna(service, method, parameters, subscribe) {
+          return new Promise(function (resolve, reject) {
+            window.webOS.service.request(service, {
+              method: method,
+              parameters: parameters || {},
+              subscribe: !!subscribe,
+              onSuccess: function (res) {
+                resolve(res);
+              },
+              onFailure: function (err) {
+                reject(err);
+              },
+            });
+          });
+        }
 
         function createAppChannel() {
           if (!onTV || !window.webOS || !window.webOS.service) {
@@ -150,29 +174,28 @@
             );
             return;
           }
-          window.webOS.service.request(APP2APP_URI + "createAppChannel", {
-            method: "createAppChannel",
-            parameters: { appId: APP_ID },
-            onSuccess: function (res) {
+          luna(APP2APP_SERVICE, "createAppChannel", { appId: APP_ID })
+            .then(function (res) {
               setBadge("badge-channel", "channel: open", "ok");
               log("createAppChannel ok: " + JSON.stringify(res), "sys");
               connectAppChannel();
-            },
-            onFailure: function (err) {
+            })
+            .catch(function (err) {
               setBadge("badge-channel", "channel: error", "warn");
               log("createAppChannel failed: " + JSON.stringify(err), "err");
-            },
-          });
+            });
         }
 
         function connectAppChannel() {
-          window.webOS.service.request(APP2APP_URI + "connectAppChannel", {
+          // connectAppChannel is subscribed: the gateway pushes each received
+          // p2p payload via onSuccess. webOSTV.js keeps the subscription alive
+          // for `subscribe:true`, so onSuccess can fire many times.
+          window.webOS.service.request(APP2APP_SERVICE, {
             method: "connectAppChannel",
             parameters: { appId: APP_ID },
             subscribe: true,
             onSuccess: function (res) {
-              // The gateway pushes each received p2p payload on this
-              // subscription. Handle both shapes for robustness.
+              // Handle both the message and payload shapes for robustness.
               if (res && res.payload !== undefined) handleIncoming(res.payload);
               else if (res && res.message !== undefined) handleIncoming(res.message);
             },
