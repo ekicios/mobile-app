@@ -11,7 +11,9 @@
       "bitcode": false,
       "bundleIdentifier": "com.oseyf.mobile-app",
       "infoPlist": {
-        "NSLocalNetworkUsageDescription": "This app connects to your Samsung TV on the local network."
+        "NSLocalNetworkUsageDescription": "This app connects to your Samsung TV on the local network.",
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to use the microphone for voice commands."
       }
     },
     "android": {
@@ -26,7 +28,8 @@
         "android.permission.INTERNET",
         "android.permission.RECORD_AUDIO"
       ],
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "package": "com.oseyf.mobileapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
