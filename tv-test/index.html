@@ -133,36 +133,22 @@
         // with luna://com.webos.service.secondscreen.gateway/app2app/createAppChannel.
         //
         // The official Connect SDK JavaScript Bridge (connectsdk.ConnectManager)
-        // wraps exactly this call. To keep this sample dependency-free we call the
-        // luna service directly via window.webOS.service. To use the bridge
+        // wraps exactly this flow. To keep this sample dependency-free we call
+        // the luna service directly via window.webOS.service. To use the bridge
         // instead, add connect_bridge.min.js and use
         // `new connectsdk.ConnectManager()` + `.on('message', ...)` — the wire
         // protocol is identical.
         //
-        // IMPORTANT: webOSTV.js's `service.request(service, opts)` builds the
-        // luna URI as `service + "/" + opts.method`. So `service` MUST be the
-        // service name WITHOUT the trailing method — do NOT append the method
-        // to the URI and pass it again in `method`, otherwise the platform sees
-        // a doubled category like ".../app2app/createAppChannel/createAppChannel".
-        var APP2APP_SERVICE =
-          "luna://com.webos.service.secondscreen.gateway/app2app";
-
-        // luna call wrapper — Promise-based so we can chain create -> connect.
-        function luna(service, method, parameters, subscribe) {
-          return new Promise(function (resolve, reject) {
-            window.webOS.service.request(service, {
-              method: method,
-              parameters: parameters || {},
-              subscribe: !!subscribe,
-              onSuccess: function (res) {
-                resolve(res);
-              },
-              onFailure: function (err) {
-                reject(err);
-              },
-            });
-          });
-        }
+        // IMPORTANT (verified against Connect SDK's connect_bridge.js):
+        //   - The service name is just ".../app2app". webOSTV.js's
+        //     `service.request(service, opts)` builds the URI as
+        //     `service + "/" + opts.method`, so the method must NOT be appended
+        //     to the service string.
+        //   - There is NO "connectAppChannel" method. `createAppChannel`
+        //     returns a `socketUrl`; the app must open a WebSocket to that URL
+        //     and read incoming `{ type:"p2p", payload:... }` messages from it.
+        //   - `createAppChannel` is called with NO parameters.
+        var APP2APP_SERVICE = "luna://com.webos.service.secondscreen.gateway/app2app";
 
         function createAppChannel() {
           if (!onTV || !window.webOS || !window.webOS.service) {
@@ -174,46 +160,87 @@
             );
             return;
           }
-          luna(APP2APP_SERVICE, "createAppChannel", { appId: APP_ID })
-            .then(function (res) {
-              setBadge("badge-channel", "channel: open", "ok");
-              log("createAppChannel ok: " + JSON.stringify(res), "sys");
-              connectAppChannel();
-            })
-            .catch(function (err) {
-              setBadge("badge-channel", "channel: error", "warn");
-              log("createAppChannel failed: " + JSON.stringify(err), "err");
-            });
-        }
-
-        function connectAppChannel() {
-          // connectAppChannel is subscribed: the gateway pushes each received
-          // p2p payload via onSuccess. webOSTV.js keeps the subscription alive
-          // for `subscribe:true`, so onSuccess can fire many times.
+          // No parameters — matches Connect SDK's createAppChannel call.
           window.webOS.service.request(APP2APP_SERVICE, {
-            method: "connectAppChannel",
-            parameters: { appId: APP_ID },
-            subscribe: true,
+            method: "createAppChannel",
+            parameters: {},
             onSuccess: function (res) {
-              // Handle both the message and payload shapes for robustness.
-              if (res && res.payload !== undefined) handleIncoming(res.payload);
-              else if (res && res.message !== undefined) handleIncoming(res.message);
+              if (res && res.socketUrl) {
+                setBadge("badge-channel", "channel: connecting…", "ok");
+                log("createAppChannel -> socketUrl " + res.socketUrl, "sys");
+                openChannelSocket(res.socketUrl);
+              } else {
+                setBadge("badge-channel", "channel: no socketUrl", "warn");
+                log("createAppChannel: no socketUrl in " + JSON.stringify(res), "err");
+              }
             },
             onFailure: function (err) {
-              log("connectAppChannel failed: " + JSON.stringify(err), "err");
+              setBadge("badge-channel", "channel: error", "warn");
+              log("createAppChannel failed: " + JSON.stringify(err), "err");
             },
           });
+        }
+
+        // Opens the app-channel WebSocket returned by createAppChannel and
+        // dispatches the p2p messages the mobile side sends.
+        function openChannelSocket(socketUrl) {
+          var ws;
+          try {
+            ws = new WebSocket(socketUrl);
+          } catch (e) {
+            setBadge("badge-channel", "channel: socket error", "warn");
+            log("WebSocket(" + socketUrl + ") failed: " + e.message, "err");
+            return;
+          }
+
+          ws.onopen = function () {
+            setBadge("badge-channel", "channel: open", "ok");
+            log("app channel socket opened", "sys");
+          };
+
+          ws.onmessage = function (event) {
+            var message;
+            try {
+              message = JSON.parse(event.data);
+            } catch (e) {
+              log("<- (non-JSON) " + event.data, "in");
+              return;
+            }
+            // Relay (p2p) message types per Connect SDK's WebOSAppChannels.
+            if (message && message.type === "p2p") {
+              handleIncoming(message.payload, message.from);
+            } else if (message && message.type === "p2p.join") {
+              log("p2p.join from " + JSON.stringify(message.from), "sys");
+            } else if (message && message.type === "p2p.depart") {
+              log("p2p.depart from " + JSON.stringify(message.from), "sys");
+            } else if (message && message.type === "p2p.join-request") {
+              log("p2p.join-request", "sys");
+            } else {
+              log("<- " + JSON.stringify(message), "in");
+            }
+          };
+
+          ws.onerror = function () {
+            setBadge("badge-channel", "channel: socket error", "warn");
+            log("app channel socket error", "err");
+          };
+
+          ws.onclose = function () {
+            setBadge("badge-channel", "channel: closed", "warn");
+            log("app channel socket closed", "sys");
+          };
         }
 
         // ---------------------------------------------------------------
         // Incoming message handling (app2app + Connect SDK bridge)
         // ---------------------------------------------------------------
-        function handleIncoming(raw) {
+        function handleIncoming(raw, from) {
           var data = raw;
           if (typeof raw === "string") {
             try { data = JSON.parse(raw); } catch (e) { /* keep string */ }
           }
-          log("<- message: " + JSON.stringify(data), "in");
+          var prefix = from ? "from " + JSON.stringify(from) + ": " : "";
+          log("<- message " + prefix + JSON.stringify(data), "in");
           if (data && data.type === "OPEN_PAGE" && data.page) {
             log('   action: open page "' + data.page + '"', "in");
           }
